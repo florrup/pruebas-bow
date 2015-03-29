@@ -161,6 +161,9 @@ print bagPrueba.featureVector(0)
 # En caso de que el puntaje sea negativo se introducen las palabras
 # del review en el Bag negativo.
 
+
+# FALTA SACAR PALABRAS CORTAS
+
 def review_to_words( raw_review ):
     # Function to convert a raw review to a string of words
     # The input is a single string (a raw movie review), and 
@@ -197,7 +200,7 @@ clean_train_reviews_neg = []
 #num_reviews = train["review"].size
 
 # PRUEBO CON 6000 REVIEWS
-num_reviews = 6000
+num_reviews = 15000
 
 for i in xrange( 0, num_reviews ):
     # If the index is evenly divisible by 1000, print a message
@@ -225,23 +228,56 @@ for count, tag in ([(count, tag) for tag, count in merge])[1:30]:
 
 print "Total de palabras %d" % len(bagNueva.wordVector())
 
+
+# Copy the results to a pandas dataframe with an "id" column and
+# a "sentiment" column
+
+output = pd.DataFrame( data={ "palabra": bagNueva.wordVector(), "frecuencia pos": bagNueva.featureVector(1) , "frecuencia neg": bagNueva.featureVector(0)} )
+
+# "frecuencia pos": (bagNueva.featureVector(1))[bagNueva.posicionEnBag(word)] , "frecuencia neg": (bagNueva.featureVector(0))[bagNueva.posicionEnBag(word)]
+# Use pandas to write the comma-separated output file
+output.to_csv( "Bag_of_Words_model.csv", index=False, quoting=3 )
+
+
 # Pruebo con los etiquetados
 
-print "El sentiment de la review %d es %d (si es 1 es positivo)" % (1, train["sentiment"][1])
-clean_reviews = review_to_words( train["review"][1] )
-clean_reviews = clean_reviews.split()
+contador = 0
+max_frec_pos = max(bagNueva.featureVector(1))
+print "Max positivas: %d" % max_frec_pos
+max_frec_neg = max(bagNueva.featureVector(0))
+print "Max negativas: %d" % max_frec_neg
 
-# Si esta en la bag positiva +1
-# Si esta en la bag negativa -1
+for j in range (num_reviews, 25000):
+	if( (j+1)%1000 == 0 ):
+		print "Review %d of 25000\n" % (j+1) 
 
-puntuacion = 0
-for word in clean_reviews:
-	if bagNueva.estaEnBag(word):
-		if (train["review"][1] == 1):
-			# Tratar caso de -1 si no llega a estar en la bag
-			frec_pos = (bagNueva.featureVector(1))[bagNueva.posicionEnBag()]
-			frec_neg = (bagNueva.featureVector(0))[bagNueva.posicionEnBag()]
-			
-		
+	clean_reviews = review_to_words( train["review"][j] )
+	clean_reviews = clean_reviews.split()
+	# Si esta en la bag positiva +1
+	# Si esta en la bag negativa -1
 	
-print "La review %d tiene %d puntos en total" % (1, puntuacion)
+	# Probar con un umbral mas chico
+
+	puntuacion = 0
+	for word in clean_reviews:
+		if bagNueva.estaEnBag(word):
+			frec_pos = (bagNueva.featureVector(1))[bagNueva.posicionEnBag(word)]
+			frec_neg = (bagNueva.featureVector(0))[bagNueva.posicionEnBag(word)]
+			frec_total = frec_pos + frec_neg		
+			
+			# Tratar caso de -1 si no llega a estar en la bag
+			# Tratar caso de frecuencias iguales
+			
+			setentaPorciento = frec_total*0.7
+			cuarentaPorcientoPos = 0.001*max_frec_pos
+			cuarentaPorcientoNeg = 0.001*max_frec_neg
+			
+			if ((frec_pos > setentaPorciento) and (frec_pos > cuarentaPorcientoPos)):
+				puntuacion += 1
+			elif ((setentaPorciento < frec_neg) and (frec_neg > cuarentaPorcientoNeg)):
+				puntuacion -= 1
+	if (((puntuacion > 0) and (	train["sentiment"][j]  == 1)) or ((puntuacion < 0) and (train["sentiment"][j] == 0)) ):
+		contador += 1
+print contador
+
+
