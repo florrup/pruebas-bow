@@ -5,8 +5,14 @@
 # python bow.py
 # *************************************** #
 
-import pandas as pd    
-import numpy as np   
+import pandas as pd   
+import numpy as np
+from bs4 import BeautifulSoup  
+import re
+import nltk
+from nltk.corpus import stopwords 
+
+
 """
 train = pd.read_csv("labeledTrainData.tsv", header=0, \
                     delimiter="\t", quoting=3)
@@ -51,7 +57,8 @@ class Bag_of_words:
 	def __init__(self):
 		self.bag = {}   
 		self.featurevec_pos = []
-		self.featurevec_neg = []
+		self.words = []
+		self.featurevec_neg = [] 
 		self.contador = 0
 
 	# Agrega una nueva key al bag, mismo caso que bow simple
@@ -59,18 +66,20 @@ class Bag_of_words:
 		if key in self.bag:
 			if (sentiment == 0):
 				self.featurevec_neg[ self.bag[key] ] += 1
-				self.featurevec_pos[ self.bag[key] ] = 0
 			else:
+				#print "Agregando key %s en posicion %d size %d" % (key, self.bag[key], len(self.featurevec_pos))
 				self.featurevec_pos[ self.bag[key] ] += 1
-				self.featurevec_neg[ self.bag[key] ] = 0
-			self.contador += 1
 		else:
 			self.bag[key] = self.contador
 			if (sentiment == 0):	
 				self.featurevec_neg.append(1)
+				self.featurevec_pos.append(0)
 			else:
 				self.featurevec_pos.append(1)
+				self.featurevec_neg.append(0)
 			self.contador += 1
+			self.words.append(key)
+			
 			
 	# Devuelve la frecuencia con la que aparece una key
 	def frecuencia(self, key, sentiment):
@@ -93,15 +102,32 @@ class Bag_of_words:
 		else:
 			return self.featurevec_pos
 	
+	def wordVector(self):
+		return self.words
+	
 	# Devuelve el contador, solo para probar. ELIMINAR ESTO
 	def contadorEn(self):
 		return self.contador
+	
+	# Devuelve true si la key esta en el bag
+	def estaEnBag(self, key):
+		if key in self.bag:
+			return True
+		else:
+			return False
+	
+	# Devuelve la posicion del feature vector en la que se encuentra la key
+	def posicionEnBag(self, key):
+		if key in self.bag:
+			return self.bag[key]
+		else:
+			return -1
 
 
 bagPrueba = Bag_of_words()
 print "Agrego la palabra good (pos) a la bag\n"
 bagPrueba.agregar('good', 1)
-print "La palabra perro deberia ahora aparecer una vez. Su frecuencia es %d" % bagPrueba.frecuencia('good', 1)
+print "La palabra good deberia ahora aparecer una vez. Su frecuencia es %d" % bagPrueba.frecuencia('good', 1)
 print "La lista de palabras guardadas es %s \n" % bagPrueba.palabrasGuardadas()
 print bagPrueba.featureVector(1)
 print "Agrego mas palabras: bad (neg), awesome (pos), good (pos)\n"
@@ -112,11 +138,13 @@ print bagPrueba.featureVector(1)
 print "La palabra good deberia tener frec 2. Su frecuencia es %d" % bagPrueba.frecuencia('good',1)
 print "La lista de palabras guardadas es %s \n" % bagPrueba.palabrasGuardadas()
 print "La palabra terrible (neg) deberia tener frec 0. Su frecuencia es %d" % bagPrueba.frecuencia('terrible',0)
-print "Contador deberia estar en 4, esta en", bagPrueba.contadorEn()
+print "Contador deberia estar en 3, esta en", bagPrueba.contadorEn()
 print bagPrueba.featureVector(0)
-#bagPrueba.agregar('awesome', 1)
-#print "La palabra awesome deberia tener frec 2. Su frecuencia es %d" % bagPrueba.frecuencia('awesome', 1)
-#print "Feature vector deberia ser [good, bad, awesome], osea [2, 1, 2], y es:\n", bagPrueba.featureVector()
+
+bagPrueba.agregar('awesome', 1)
+print "La palabra awesome deberia tener frec 2. Su frecuencia es %d" % bagPrueba.frecuencia('awesome', 1)
+print "Feature vector deberia ser [good, bad, awesome], osea [2, 0, 2], y es:\n", bagPrueba.featureVector(1)
+print bagPrueba.featureVector(0)
 
 
 # # # # Implementando el Algoritmo 1 de Pancho & Pablo
@@ -133,7 +161,6 @@ print bagPrueba.featureVector(0)
 # En caso de que el puntaje sea negativo se introducen las palabras
 # del review en el Bag negativo.
 
-"""
 def review_to_words( raw_review ):
     # Function to convert a raw review to a string of words
     # The input is a single string (a raw movie review), and 
@@ -159,14 +186,19 @@ def review_to_words( raw_review ):
     # and return the result.
     return( " ".join( meaningful_words ))
 
-    
+
 train = pd.read_csv("labeledTrainData.tsv", header=0, \
                     delimiter="\t", quoting=3)
 
 print "Cleaning and parsing the training set movie reviews...\n"
 clean_train_reviews_pos = []
 clean_train_reviews_neg = []
-num_reviews = train["review"].size
+
+#num_reviews = train["review"].size
+
+# PRUEBO CON 6000 REVIEWS
+num_reviews = 6000
+
 for i in xrange( 0, num_reviews ):
     # If the index is evenly divisible by 1000, print a message
     if( (i+1)%1000 == 0 ):
@@ -176,4 +208,40 @@ for i in xrange( 0, num_reviews ):
     if ((train["sentiment"][i]) == 0):
 		clean_train_reviews_neg.append( review_to_words( train["review"][i] ))
 
-"""
+bagNueva = Bag_of_words()
+
+for lista in clean_train_reviews_pos:
+	reviewsplit = lista.split()
+	for word in reviewsplit:
+		bagNueva.agregar(word, 1)
+for lista in clean_train_reviews_neg:
+	reviewsplit = lista.split()
+	for word in reviewsplit:
+		bagNueva.agregar(word, 0)
+
+merge = zip(bagNueva.featureVector(1), bagNueva.wordVector())
+for count, tag in ([(count, tag) for tag, count in merge])[1:30]:
+    print(count, tag)
+
+print "Total de palabras %d" % len(bagNueva.wordVector())
+
+# Pruebo con los etiquetados
+
+print "El sentiment de la review %d es %d (si es 1 es positivo)" % (1, train["sentiment"][1])
+clean_reviews = review_to_words( train["review"][1] )
+clean_reviews = clean_reviews.split()
+
+# Si esta en la bag positiva +1
+# Si esta en la bag negativa -1
+
+puntuacion = 0
+for word in clean_reviews:
+	if bagNueva.estaEnBag(word):
+		if (train["review"][1] == 1):
+			# Tratar caso de -1 si no llega a estar en la bag
+			frec_pos = (bagNueva.featureVector(1))[bagNueva.posicionEnBag()]
+			frec_neg = (bagNueva.featureVector(0))[bagNueva.posicionEnBag()]
+			
+		
+	
+print "La review %d tiene %d puntos en total" % (1, puntuacion)
