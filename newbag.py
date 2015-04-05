@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 import re
 import nltk
 from nltk.corpus import stopwords 
+from nltk.stem import WordNetLemmatizer
 
 # # # # Implementando un Bag of Words decente
 
@@ -119,18 +120,26 @@ def pruebaBag():
 # Paso 1. Limpio las reviews con sentiment. Se eliminan las stop words, mayusculas, etc
 
 def review_to_words( raw_review ):
-    # 1. Remueve HTML
+    # Remueve HTML
     review_text = BeautifulSoup(raw_review).get_text() 
-    # 2. Remueve non-letters        
+    # Remueve non-letters        
     letters_only = re.sub("[^a-zA-Z]", " ", review_text) 
-    # 3. Lower case y split de palabras
-    words = letters_only.lower().split()                             
-    # 4. In Python, searching a set is much faster than searching
-    #   a list, so convert the stop words to a set
-    stops = set(stopwords.words("english"))                  
-    # 5. Remueve stop words
+    # Lower case y split de palabras
+    wordsSplit = letters_only.lower().split()
+    words = wordsSplit # sacar esto para probar el Lemmatizer
+    """    # Uso el Lemmatizer
+    words = []
+    wordnet_lemmatizer = WordNetLemmatizer()
+    for w in wordsSplit:
+		lem = wordnet_lemmatizer.lemmatize(w)
+		if lem not in words:
+			words.append(lem)	"""
+    # In Python, searching a set is much faster than searching
+    # a list, so convert the stop words to a set
+    stops = set(stopwords.words("english"))
+    # Remueve stop words
     meaningful_words = [w for w in words if not w in stops]   
-    # 6. Junta las palabras en un unico string
+    # Junta las palabras en un unico string
     return( " ".join( meaningful_words ))
 
 # Paso 2. Se devuelve una bow entrenada 
