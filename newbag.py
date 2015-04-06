@@ -10,6 +10,9 @@ import numpy as np
 from bs4 import BeautifulSoup  
 import re
 import nltk
+from nltk.probability import ELEProbDist, FreqDist
+from nltk import NaiveBayesClassifier
+
 from nltk.corpus import stopwords 
 from nltk.stem import WordNetLemmatizer
 import unicodedata
@@ -169,14 +172,27 @@ def entrenamientoBag():
 	# Comienzo con el entrenamiento del bow
 	bagNueva = Bag_of_words()
 
-	for lista in clean_train_reviews_pos:
-		reviewsplit = lista.split()
-		clean_reviews.append( (reviewsplit, 'pos') )
+	for review in clean_train_reviews_pos:
+		reviewsplit = review.split()
+		nuevo = []
+		for w in reviewsplit:
+			w = unicodedata.normalize('NFKD', w).encode('ascii','ignore') 
+			nuevo.append(w)
+		reviewsplit = nuevo
+		clean_reviews.append( (reviewsplit, 'positive') )
+		
 		for word in reviewsplit:
 			bagNueva.agregar(word, 1)
-	for lista in clean_train_reviews_neg:
-		reviewsplit = lista.split()
-		clean_reviews.append( (reviewsplit, 'neg') )
+	#print clean_reviews
+	for review in clean_train_reviews_neg:
+		reviewsplit = review.split()
+		nuevoneg = []
+		for w in reviewsplit:
+			w = unicodedata.normalize('NFKD', w).encode('ascii','ignore') 
+			nuevoneg.append(w)
+		reviewsplit = nuevoneg
+		clean_reviews.append( (reviewsplit, 'negative') )
+
 		for word in reviewsplit:
 			bagNueva.agregar(word, 0)
 	# Termina el entrenamiento del bow
@@ -260,31 +276,28 @@ def naiveBayes(bagNueva):
 	mergeOrdenado = sorted(merge, key=getKey, reverse=True)
 	for tupla in mergeOrdenado:
 		word_features.append(tupla[1])
-	#print word_features
-	new_word = []
-	for w in word_features:
-		new_word.append( unicodedata.normalize('NFKD', w).encode('ascii','ignore') )
-	#print new_word
-	#word_features = new_word
-	
-	#training_set = nltk.classify.apply_features(extract_features, clean_reviews)
 
-	#classifier = nltk.NaiveBayesClassifier.train(training_set)
-
+	training_set = nltk.classify.apply_features(extract_features, clean_reviews)
+	print training_set
+	print "Llegue Y HASTA ACA TODO PIOLA"
+	classifier = nltk.NaiveBayesClassifier.train(training_set)
+	print "Hasta aca tambien"
 	# PROBANDO
-	#tweet = 'Larry is my friend'
-	#print classifier.classify(extract_features(tweet.split()))
+	tweet = 'Larry is my friend'
+	print classifier.classify(extract_features(tweet.split()))
 
-	"""	print "Llego hasta aca"
+
 	# training_set es una lista de tuplas. Cada tupla contiene un feature
 	# dictionary y el sentiment para cada review 
-	training_set = nltk.classify.apply_features(extract_features, clean_reviews)
+	#training_set = nltk.classify.apply_features(extract_features, clean_reviews)
 	# Entreno el classifier
-	NBClassifier = nltk.NaiveBayesClassifier.train(training_set)
-	print "Y aca tambien"
-	# Pruebo el classifier
-	tweet = 'Larry is my friend'
-	print classifier.classify(extract_features(tweet.split()))	"""
+	# Train the classifier
+	"""NBClassifier = nltk.NaiveBayesClassifier.train(training_set)
+
+	# Test the classifier
+	testTweet = 'Congrats @ravikiranj, i heard you wrote a new tech post on sentiment analysis'
+	processedTestTweet = processTweet(testTweet)
+	print NBClassifier.classify(extract_features(getFeatureVector(processedTestTweet)))"""
 	
 	
 # # # # Implementando el Algoritmo 3
@@ -316,7 +329,7 @@ def main():
 	print "Frecuencia maxima de palabra de las reviews positivas: %d" % max(bag.featureVector(1))
 	print "Frecuencia maxima de palabra de las reviews negativas: %d" % max(bag.featureVector(0))
 	#prueboMasMenosUno(bag)
-	#naiveBayes(bag)
+	naiveBayes(bag)
 	#maxEntropy(bag)
 
 if __name__ == "__main__":
