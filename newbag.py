@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # 
-# Pruebas para un Bag Of Words. Algoritmo 1.
+# Pruebas para un Bag Of Words. 
 # 
 # python newbag.py
 # *************************************** #
@@ -143,7 +143,8 @@ def review_to_words( raw_review ):
     return( " ".join( meaningful_words ))
 
 # Paso 2. Se devuelve una bow entrenada 
-
+clean_reviews = [] # una lista que contiene tuplas, las cuales contienen
+				   # (lista de palabras de la review, sentiment de la review)
 def entrenamientoBag():
 	train = pd.read_csv("labeledTrainData.tsv", header=0, \
 						delimiter="\t", quoting=3)
@@ -169,10 +170,12 @@ def entrenamientoBag():
 
 	for lista in clean_train_reviews_pos:
 		reviewsplit = lista.split()
+		clean_reviews.append( (reviewsplit, 'pos') )
 		for word in reviewsplit:
 			bagNueva.agregar(word, 1)
 	for lista in clean_train_reviews_neg:
 		reviewsplit = lista.split()
+		clean_reviews.append( (reviewsplit, 'neg') )
 		for word in reviewsplit:
 			bagNueva.agregar(word, 0)
 	# Termina el entrenamiento del bow
@@ -233,13 +236,82 @@ def prueboMasMenosUno(bagNueva):
 			
 	print "%d of %d casos acertados" %(contador, 25000 - num_reviews)
 
+
+# # # # Implementando el Algoritmo 2
+# Pruebo con un Naive Bayes para ver el porcentaje de aciertos
+word_features = []
+
+def extract_features(document):
+    document_words = set(document)
+    features = {}
+    for word in word_features:
+        features['contains(%s)' % word] = (word in document_words)
+    return features
+
+def getKey(item):
+	return item[0]
+
+# REVISAR EL TEMA DE UNICODE STRING
+def naiveBayes(bagNueva):
+	# Obtengo una lista con tuplas (frecuencia, palabra)
+	merge = zip(bagNueva.featureVector(1), bagNueva.wordVector())
+	# Ordeno por frecuencia de mayor a menor
+	mergeOrdenado = sorted(merge, key=getKey, reverse=True)
+	for tupla in mergeOrdenado:
+		word_features.append(tupla[1])
+		
+	training_set = nltk.classify.apply_features(extract_features, clean_reviews)
+
+	classifier = nltk.NaiveBayesClassifier.train(training_set)
+
+	# PROBANDO
+	tweet = 'Larry is my friend'
+	print classifier.classify(extract_features(tweet.split()))
+
+	"""	print "Llego hasta aca"
+	# training_set es una lista de tuplas. Cada tupla contiene un feature
+	# dictionary y el sentiment para cada review 
+	training_set = nltk.classify.apply_features(extract_features, clean_reviews)
+	print "Y aca"
+	# Entreno el classifier
+	NBClassifier = nltk.NaiveBayesClassifier.train(training_set)
+	print "Y aca tambien"
+	# Pruebo el classifier
+	tweet = 'Larry is my friend'
+	print classifier.classify(extract_features(tweet.split()))	"""
+	
+	
+# # # # Implementando el Algoritmo 3
+# Pruebo con un Max Entropy Classifier para ver el porcentaje de aciertos
+
+# REVISAR EL TEMA DE UNICODE STRING
+def maxEntropy(bagNueva): 
+	# Obtengo una lista con tuplas (frecuencia, palabra)
+	merge = zip(bagNueva.featureVector(1), bagNueva.wordVector())
+	# Ordeno por frecuencia de mayor a menor
+	mergeOrdenado = sorted(merge, key=getKey, reverse=True)
+	for tupla in mergeOrdenado:
+		word_features.append(tupla[1])
+	# training_set es una lista de tuplas. Cada tupla contiene un feature
+	# dictionary y el sentiment para cada review 
+	training_set = nltk.classify.apply_features(extract_features, clean_reviews)
+
+	MaxEntClassifier = nltk.classify.maxent.MaxentClassifier.train(training_set, 'GIS', trace=3, \
+						encoding=None, labels=None, gaussian_prior_sigma=0, max_iter = 10)
+	testTweet = 'Larry is my friend'
+	print testTweet
+	processedTestTweet = review_to_words(testTweet)
+	print MaxEntClassifier.classify(extract_features(processedTestTweet.split()))
+
 def main():
-	pruebaBag()
+	#pruebaBag()
 	bag = entrenamientoBag()
 	print "Total de palabras en la bag: %d" % len(bag.wordVector())
 	print "Frecuencia maxima de palabra de las reviews positivas: %d" % max(bag.featureVector(1))
 	print "Frecuencia maxima de palabra de las reviews negativas: %d" % max(bag.featureVector(0))
-	prueboMasMenosUno(bag)
+	#prueboMasMenosUno(bag)
+	#naiveBayes(bag)
+	#maxEntropy(bag)
 
 if __name__ == "__main__":
     main()
