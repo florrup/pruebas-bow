@@ -12,6 +12,7 @@ import re
 import nltk
 from nltk.corpus import stopwords 
 from nltk.stem import WordNetLemmatizer
+import unicodedata
 
 # # # # Implementando un Bag of Words decente
 
@@ -259,20 +260,25 @@ def naiveBayes(bagNueva):
 	mergeOrdenado = sorted(merge, key=getKey, reverse=True)
 	for tupla in mergeOrdenado:
 		word_features.append(tupla[1])
-		
-	training_set = nltk.classify.apply_features(extract_features, clean_reviews)
+	#print word_features
+	new_word = []
+	for w in word_features:
+		new_word.append( unicodedata.normalize('NFKD', w).encode('ascii','ignore') )
+	#print new_word
+	#word_features = new_word
+	
+	#training_set = nltk.classify.apply_features(extract_features, clean_reviews)
 
-	classifier = nltk.NaiveBayesClassifier.train(training_set)
+	#classifier = nltk.NaiveBayesClassifier.train(training_set)
 
 	# PROBANDO
-	tweet = 'Larry is my friend'
-	print classifier.classify(extract_features(tweet.split()))
+	#tweet = 'Larry is my friend'
+	#print classifier.classify(extract_features(tweet.split()))
 
 	"""	print "Llego hasta aca"
 	# training_set es una lista de tuplas. Cada tupla contiene un feature
 	# dictionary y el sentiment para cada review 
 	training_set = nltk.classify.apply_features(extract_features, clean_reviews)
-	print "Y aca"
 	# Entreno el classifier
 	NBClassifier = nltk.NaiveBayesClassifier.train(training_set)
 	print "Y aca tambien"
