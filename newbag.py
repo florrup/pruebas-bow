@@ -147,6 +147,7 @@ def review_to_words( raw_review ):
     return( " ".join( meaningful_words ))
 
 # Paso 2. Se devuelve una bow entrenada 
+
 clean_reviews = [] # una lista que contiene tuplas, las cuales contienen
 				   # (lista de palabras de la review, sentiment de la review)
 def entrenamientoBag():
@@ -183,7 +184,7 @@ def entrenamientoBag():
 		
 		for word in reviewsplit:
 			bagNueva.agregar(word, 1)
-	#print clean_reviews
+
 	for review in clean_train_reviews_neg:
 		reviewsplit = review.split()
 		nuevoneg = []
@@ -215,11 +216,6 @@ def prueboMasMenosUno(bagNueva):
 	# Entrene con las primeras 20000, pruebo con las otras 5000
 	num_reviews = 20000
 	
-	"""
-	merge = zip(bagNueva.featureVector(1), bagNueva.wordVector())
-	for count, tag in ([(count, tag) for tag, count in merge])[1:30]:
-		print(count, tag)
-	"""
 	max_frec_pos = max(bagNueva.featureVector(1))
 	max_frec_neg = max(bagNueva.featureVector(0))
 
@@ -277,14 +273,10 @@ def naiveBayes(bagNueva):
 		word_features.append(tupla[1])
 
 	training_set = nltk.classify.apply_features(extract_features, clean_reviews)
-	#print training_set
-	print "Llegue Y HASTA ACA TODO PIOLA"
+
 	classifier = nltk.NaiveBayesClassifier.train(training_set)
-	print "Hasta aca tambien"
+
 	# PROBANDO
-	tweet = 'Larry is my friend'
-	print classifier.classify(extract_features(tweet.split()))
-	print "ESO FUE EL NEGATIVE"
 	reviewsPruebas = []
 	sentimentPruebas = []
 	train = pd.read_csv("labeledTrainData.tsv", header=0, \
@@ -300,9 +292,10 @@ def naiveBayes(bagNueva):
 	i = 0
 	porcentaje = 0
 	for rev in reviewsPruebas:
-		if ((classifier.classify(extract_features(rev.split())) == 'negative' ) and (sentimentPruebas[i] == 0)):
+		sentimiento = classifier.classify(extract_features(rev.split()
+		if ((sentimiento == 'negative' ) and (sentimentPruebas[i] == 0)):
 			porcentaje += 1 
-		if ((classifier.classify(extract_features(rev.split())) == 'positive' ) and (sentimentPruebas[i] == 1)):
+		if ((sentimiento == 'positive' ) and (sentimentPruebas[i] == 1)): #No corresponde un elif?
 			porcentaje += 1
 		i += 1
 
@@ -316,26 +309,11 @@ def clasificarDesdeArchivo():
 	train = pd.read_csv("labeledTrainData.tsv", header=0, \
 					delimiter="\t", quoting=3)
 	classifier = levantarDeArchivo()
-	for j in range (0, 100):
-		reviewsPruebas.append( review_to_words( train["review"][j] ) )
-		sentimentPruebas.append( train["sentiment"][j] )
-	
 
-	longit = len(reviewsPruebas)
-	for i in range(0,longit):
-		print "(%s, %d)" % (classifier.classify(extract_features(rev.split())) , sentimentPruebas[i])
-	#for rev in reviewsPruebas:
-	#	print classifier.classify(extract_features(rev.split()))
-	#for sent in sentimentPruebas:
-	# 	print sent
-	# print "ESO FUE EL NEGATIVE"
 
-	
-	
 # # # # Implementando el Algoritmo 3
 # Pruebo con un Max Entropy Classifier para ver el porcentaje de aciertos
 
-# REVISAR EL TEMA DE UNICODE STRING
 # def maxEntropy(bagNueva): 
 # 	# Obtengo una lista con tuplas (frecuencia, palabra)
 # 	merge = zip(bagNueva.featureVector(1), bagNueva.wordVector())
@@ -366,7 +344,7 @@ def levantarDeArchivo():
 	return classifier
 
 def main():
-	reviewsPruebas = []
+	reviewsPruebas = [] 
 	sentimentPruebas = []
 	train = pd.read_csv("labeledTrainData.tsv", header=0, \
 					delimiter="\t", quoting=3)
