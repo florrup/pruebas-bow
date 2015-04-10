@@ -16,7 +16,7 @@ from nltk import NaiveBayesClassifier
 from nltk.corpus import stopwords 
 from nltk.stem import WordNetLemmatizer
 import unicodedata
-
+import pickle #Para persitencia
 # # # # Implementando un Bag of Words decente
 
 class Bag_of_words:
@@ -158,7 +158,7 @@ def entrenamientoBag():
 	clean_train_reviews_neg = []
 	
 	#num_reviews = train["review"].size
-	num_reviews = 20000
+	num_reviews = 10000
 	
 	print "# # # # Parseando reviews...\n"
 	for i in xrange( 0, num_reviews ):
@@ -268,7 +268,6 @@ def extract_features(document):
 def getKey(item):
 	return item[0]
 
-# REVISAR EL TEMA DE UNICODE STRING
 def naiveBayes(bagNueva):
 	# Obtengo una lista con tuplas (frecuencia, palabra)
 	merge = zip(bagNueva.featureVector(1), bagNueva.wordVector())
@@ -278,59 +277,109 @@ def naiveBayes(bagNueva):
 		word_features.append(tupla[1])
 
 	training_set = nltk.classify.apply_features(extract_features, clean_reviews)
-	print training_set
+	#print training_set
 	print "Llegue Y HASTA ACA TODO PIOLA"
 	classifier = nltk.NaiveBayesClassifier.train(training_set)
 	print "Hasta aca tambien"
 	# PROBANDO
 	tweet = 'Larry is my friend'
 	print classifier.classify(extract_features(tweet.split()))
+	print "ESO FUE EL NEGATIVE"
+	reviewsPruebas = []
+	sentimentPruebas = []
+	train = pd.read_csv("labeledTrainData.tsv", header=0, \
+					delimiter="\t", quoting=3)
 
+	inicio = 10001
+	fin = 25000
 
-	# training_set es una lista de tuplas. Cada tupla contiene un feature
-	# dictionary y el sentiment para cada review 
-	#training_set = nltk.classify.apply_features(extract_features, clean_reviews)
-	# Entreno el classifier
-	# Train the classifier
-	"""NBClassifier = nltk.NaiveBayesClassifier.train(training_set)
+	for j in range (inicio, fin):
+		reviewsPruebas.append( review_to_words( train["review"][j] ) )
+		sentimentPruebas.append( train["sentiment"][j] )
 
-	# Test the classifier
-	testTweet = 'Congrats @ravikiranj, i heard you wrote a new tech post on sentiment analysis'
-	processedTestTweet = processTweet(testTweet)
-	print NBClassifier.classify(extract_features(getFeatureVector(processedTestTweet)))"""
+	i = 0
+	porcentaje = 0
+	for rev in reviewsPruebas:
+		if ((classifier.classify(extract_features(rev.split())) == 'negative' ) and (sentimentPruebas[i] == 0)):
+			porcentaje += 1 
+		if ((classifier.classify(extract_features(rev.split())) == 'positive' ) and (sentimentPruebas[i] == 1)):
+			porcentaje += 1
+		i += 1
+
+	total = porcentaje / ((fin - inicio) + 0.0)
+	print porcentaje 
+	print total
+
+def clasificarDesdeArchivo():
+	reviewsPruebas = []
+	sentimentPruebas = []
+	train = pd.read_csv("labeledTrainData.tsv", header=0, \
+					delimiter="\t", quoting=3)
+	classifier = levantarDeArchivo()
+	for j in range (0, 100):
+		reviewsPruebas.append( review_to_words( train["review"][j] ) )
+		sentimentPruebas.append( train["sentiment"][j] )
+	
+
+	longit = len(reviewsPruebas)
+	for i in range(0,longit):
+		print "(%s, %d)" % (classifier.classify(extract_features(rev.split())) , sentimentPruebas[i])
+	#for rev in reviewsPruebas:
+	#	print classifier.classify(extract_features(rev.split()))
+	#for sent in sentimentPruebas:
+	# 	print sent
+	# print "ESO FUE EL NEGATIVE"
+
 	
 	
 # # # # Implementando el Algoritmo 3
 # Pruebo con un Max Entropy Classifier para ver el porcentaje de aciertos
 
 # REVISAR EL TEMA DE UNICODE STRING
-def maxEntropy(bagNueva): 
-	# Obtengo una lista con tuplas (frecuencia, palabra)
-	merge = zip(bagNueva.featureVector(1), bagNueva.wordVector())
-	# Ordeno por frecuencia de mayor a menor
-	mergeOrdenado = sorted(merge, key=getKey, reverse=True)
-	for tupla in mergeOrdenado:
-		word_features.append(tupla[1])
-	# training_set es una lista de tuplas. Cada tupla contiene un feature
-	# dictionary y el sentiment para cada review 
-	training_set = nltk.classify.apply_features(extract_features, clean_reviews)
+# def maxEntropy(bagNueva): 
+# 	# Obtengo una lista con tuplas (frecuencia, palabra)
+# 	merge = zip(bagNueva.featureVector(1), bagNueva.wordVector())
+# 	# Ordeno por frecuencia de mayor a menor
+# 	mergeOrdenado = sorted(merge, key=getKey, reverse=True)
+# 	for tupla in mergeOrdenado:
+# 		word_features.append(tupla[1])
+# 	# training_set es una lista de tuplas. Cada tupla contiene un feature
+# 	# dictionary y el sentiment para cada review 
+# 	training_set = nltk.classify.apply_features(extract_features, clean_reviews)
 
-	MaxEntClassifier = nltk.classify.maxent.MaxentClassifier.train(training_set, 'GIS', trace=3, \
-						encoding=None, labels=None, gaussian_prior_sigma=0, max_iter = 10)
-	testTweet = 'Larry is my friend'
-	print testTweet
-	processedTestTweet = review_to_words(testTweet)
-	print MaxEntClassifier.classify(extract_features(processedTestTweet.split()))
+# 	MaxEntClassifier = nltk.classify.maxent.MaxentClassifier.train(training_set, 'GIS', trace=3, \
+# 						encoding=None, labels=None, gaussian_prior_sigma=0, max_iter = 10)
+# 	testTweet = 'Larry is my friend'
+# 	print testTweet
+# 	processedTestTweet = review_to_words(testTweet)	
+# #print MaxEntClassifier.classify(extract_features(processedTestTweet.split()))
+
+def persistir(classifier):
+	f = open('naiveBayes.pickle', 'wb')
+	pickle.dump(classifier, f)
+	f.close()
+
+def levantarDeArchivo():
+	f = open('naiveBayes.pickle')
+	classifier = pickle.load(f)
+	f.close()
+	return classifier
 
 def main():
+	reviewsPruebas = []
+	sentimentPruebas = []
+	train = pd.read_csv("labeledTrainData.tsv", header=0, \
+					delimiter="\t", quoting=3)
 	#pruebaBag()
 	bag = entrenamientoBag()
 	print "Total de palabras en la bag: %d" % len(bag.wordVector())
 	print "Frecuencia maxima de palabra de las reviews positivas: %d" % max(bag.featureVector(1))
 	print "Frecuencia maxima de palabra de las reviews negativas: %d" % max(bag.featureVector(0))
 	#prueboMasMenosUno(bag)
-	naiveBayes(bag)
+	tuvieja = naiveBayes(bag)
+	#persistir(tuvieja)
 	#maxEntropy(bag)
+	#clasificarDesdeArchivo()
 
 if __name__ == "__main__":
     main()
