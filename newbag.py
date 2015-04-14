@@ -15,8 +15,10 @@ from nltk import NaiveBayesClassifier
 
 from nltk.corpus import stopwords 
 from nltk.stem import WordNetLemmatizer
+from nltk.stem.lancaster import LancasterStemmer
 import unicodedata
 import pickle #Para persitencia
+
 # # # # Implementando un Bag of Words decente
 
 class Bag_of_words:
@@ -131,13 +133,19 @@ def review_to_words( raw_review ):
     # Lower case y split de palabras
     wordsSplit = letters_only.lower().split()
     words = wordsSplit # sacar esto para probar el Lemmatizer
-    """    # Uso el Lemmatizer
+    """# Uso el Lemmatizer
     words = []
     wordnet_lemmatizer = WordNetLemmatizer()
     for w in wordsSplit:
 		lem = wordnet_lemmatizer.lemmatize(w)
-		if lem not in words:
-			words.append(lem)	"""
+		words.append(lem)
+	# Uso Porter Stemming
+    words = []
+    st = LancasterStemmer()
+    for w in wordsSplit:
+		stem = st.stem(w)
+		words.append(stem)
+	"""
     # In Python, searching a set is much faster than searching
     # a list, so convert the stop words to a set
     stops = set(stopwords.words("english"))
@@ -159,7 +167,7 @@ def entrenamientoBag():
 	clean_train_reviews_neg = []
 	
 	#num_reviews = train["review"].size
-	num_reviews = 10000
+	num_reviews = 20000
 	
 	print "# # # # Parseando reviews...\n"
 	for i in xrange( 0, num_reviews ):
@@ -292,7 +300,7 @@ def naiveBayes(bagNueva):
 	i = 0
 	porcentaje = 0
 	for rev in reviewsPruebas:
-		sentimiento = classifier.classify(extract_features(rev.split()
+		sentimiento = classifier.classify(extract_features( rev.split() ) )
 		if ((sentimiento == 'negative' ) and (sentimentPruebas[i] == 0)):
 			porcentaje += 1 
 		if ((sentimiento == 'positive' ) and (sentimentPruebas[i] == 1)): #No corresponde un elif?
@@ -344,6 +352,7 @@ def levantarDeArchivo():
 	return classifier
 
 def main():
+
 	reviewsPruebas = [] 
 	sentimentPruebas = []
 	train = pd.read_csv("labeledTrainData.tsv", header=0, \
@@ -353,11 +362,13 @@ def main():
 	print "Total de palabras en la bag: %d" % len(bag.wordVector())
 	print "Frecuencia maxima de palabra de las reviews positivas: %d" % max(bag.featureVector(1))
 	print "Frecuencia maxima de palabra de las reviews negativas: %d" % max(bag.featureVector(0))
-	#prueboMasMenosUno(bag)
-	tuvieja = naiveBayes(bag)
+	prueboMasMenosUno(bag)
+	#tuvieja = naiveBayes(bag)
 	#persistir(tuvieja)
 	#maxEntropy(bag)
 	#clasificarDesdeArchivo()
+	
+
 
 if __name__ == "__main__":
     main()
