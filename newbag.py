@@ -10,14 +10,14 @@ import numpy as np
 from bs4 import BeautifulSoup  
 import re
 import nltk
+
 from nltk.probability import ELEProbDist, FreqDist
 from nltk import NaiveBayesClassifier
-
 from nltk.corpus import stopwords 
 from nltk.stem import WordNetLemmatizer
 from nltk.stem.lancaster import LancasterStemmer
 import unicodedata
-import pickle #Para persitencia
+import pickle # Para persitencia
 
 # # # # Implementando un Bag of Words decente
 
@@ -132,7 +132,7 @@ def review_to_words( raw_review ):
     letters_only = re.sub("[^a-zA-Z]", " ", review_text) 
     # Lower case y split de palabras
     wordsSplit = letters_only.lower().split()
-    words = wordsSplit # sacar esto para probar el Lemmatizer
+    words = wordsSplit # sacar esto para probar el Lemmatizer y Stemming
     """# Uso el Lemmatizer
     words = []
     wordnet_lemmatizer = WordNetLemmatizer()
@@ -290,7 +290,7 @@ def naiveBayes(bagNueva):
 	train = pd.read_csv("labeledTrainData.tsv", header=0, \
 					delimiter="\t", quoting=3)
 
-	inicio = 10001
+	inicio = 20000
 	fin = 25000
 
 	for j in range (inicio, fin):
@@ -318,28 +318,6 @@ def clasificarDesdeArchivo():
 					delimiter="\t", quoting=3)
 	classifier = levantarDeArchivo()
 
-
-# # # # Implementando el Algoritmo 3
-# Pruebo con un Max Entropy Classifier para ver el porcentaje de aciertos
-
-# def maxEntropy(bagNueva): 
-# 	# Obtengo una lista con tuplas (frecuencia, palabra)
-# 	merge = zip(bagNueva.featureVector(1), bagNueva.wordVector())
-# 	# Ordeno por frecuencia de mayor a menor
-# 	mergeOrdenado = sorted(merge, key=getKey, reverse=True)
-# 	for tupla in mergeOrdenado:
-# 		word_features.append(tupla[1])
-# 	# training_set es una lista de tuplas. Cada tupla contiene un feature
-# 	# dictionary y el sentiment para cada review 
-# 	training_set = nltk.classify.apply_features(extract_features, clean_reviews)
-
-# 	MaxEntClassifier = nltk.classify.maxent.MaxentClassifier.train(training_set, 'GIS', trace=3, \
-# 						encoding=None, labels=None, gaussian_prior_sigma=0, max_iter = 10)
-# 	testTweet = 'Larry is my friend'
-# 	print testTweet
-# 	processedTestTweet = review_to_words(testTweet)	
-# #print MaxEntClassifier.classify(extract_features(processedTestTweet.split()))
-
 def persistir(classifier):
 	f = open('naiveBayes.pickle', 'wb')
 	pickle.dump(classifier, f)
@@ -353,10 +331,6 @@ def levantarDeArchivo():
 
 def main():
 
-	reviewsPruebas = [] 
-	sentimentPruebas = []
-	train = pd.read_csv("labeledTrainData.tsv", header=0, \
-					delimiter="\t", quoting=3)
 	#pruebaBag()
 	bag = entrenamientoBag()
 	print "Total de palabras en la bag: %d" % len(bag.wordVector())
@@ -365,10 +339,7 @@ def main():
 	prueboMasMenosUno(bag)
 	#tuvieja = naiveBayes(bag)
 	#persistir(tuvieja)
-	#maxEntropy(bag)
 	#clasificarDesdeArchivo()
-	
-
 
 if __name__ == "__main__":
     main()
