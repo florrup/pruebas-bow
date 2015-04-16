@@ -12,6 +12,8 @@ def clean(s):
 
 def get_data_tsv(loc_dataset,opts):
 	"""
+	Modificada de la original:
+		-Para que lea hasta la línea 20000.
 	Running through data in an online manner
 	Parses a tsv file for this competition and yields label, identifier and features
 	output:
@@ -20,7 +22,7 @@ def get_data_tsv(loc_dataset,opts):
 			features: list of tuples, in the form [(hashed_feature_index,feature_value)]
 	"""
 	for e, line in enumerate(open(loc_dataset,"rb")):
-		if e > 0:
+		if ((e > 0) and (e <= 20000)):
 			r = line.strip().split("\t")
 			id = r[0]
 			
@@ -29,7 +31,6 @@ def get_data_tsv(loc_dataset,opts):
 					r[2] = clean(r[2])
 				except:
 					r[1] = clean(r[1])
-			
 			if len(r) == 3: #train set
 				features = [(hash(f)%opts["D"],1) for f in r[2].split()]
 				label = int(r[1])
@@ -41,7 +42,40 @@ def get_data_tsv(loc_dataset,opts):
 				for i in xrange(len(features)-1):
 					features.append((hash(str(features[i][0])+str(features[i+1][0]))%opts["D"],1))
 			yield label, id, features
+
+def get_test_tsv(loc_dataset,opts):
+	"""
+	Modificada de get_data_tsv:
+		-Para que lea desde la línea 20000 en adelante.
+	Running through data in an online manner
+	Parses a tsv file for this competition and yields label, identifier and features
+	output:
+			label: int, The label / target (set to "1" if test set)
+			id: string, the sample identifier
+			features: list of tuples, in the form [(hashed_feature_index,feature_value)]
+	"""
+	for e, line in enumerate(open(loc_dataset,"rb")):
+		if (e > 20000):
+			r = line.strip().split("\t")
+			id = r[0]
 			
+			if opts["clean"]:
+				try:
+					r[2] = clean(r[2])
+				except:
+					r[1] = clean(r[1])
+			if len(r) == 3: #train set
+				features = [(hash(f)%opts["D"],1) for f in r[2].split()]
+				label = int(r[1])
+			else: #test set
+				features = [(hash(f)%opts["D"],1) for f in r[1].split()]
+				label = 1
+				
+			if opts["2grams"]:
+				for i in xrange(len(features)-1):
+					features.append((hash(str(features[i][0])+str(features[i+1][0]))%opts["D"],1))
+			yield label, id, features
+
 def dot_product(features,weights):
 	"""
 	Calculate dot product from features and weights
@@ -99,7 +133,7 @@ def test_tron(loc_dataset,weights,opts):
 	print("\nTesting online\nErrors\t\tAverage\t\tNr. Samples\tSince Start")
 	preds = []
 	error_counter = 0
-	for e, (label, id, features) in enumerate( get_data_tsv(loc_dataset,opts) ):
+	for e, (label, id, features) in enumerate( get_test_tsv(loc_dataset,opts) ): 
 
 		dotp = dot_product(features, weights)
 		dp = dotp > 0.5
@@ -135,14 +169,35 @@ if __name__ == "__main__":
 	opts["clean"] = True # clean the text a little
 	opts["2grams"] = True # add 2grams
 
-	#training and saving model into weights
-	weights = train_tron("labeledTrainData.tsv",opts)
+	# # # training and saving model into weights
+	# weights = train_tron("labeledTrainData.tsv",opts)
 	
-	#testing and saving predictions into preds
-	preds = test_tron("testData.tsv",weights,opts)
+	# # # #testing and saving predictions into preds
+	# preds = test_tron("labeledTrainData.tsv",weights,opts)
 
-	#writing kaggle submission
-	with open("popcorn.csv","wb") as outfile:
-		outfile.write('"id","sentiment"'+"\n")
-		for p in sorted(preds):
-			outfile.write("%s,%s\n"%(p[0],p[3]))
+	# # writing kaggle submission
+	# with open("popcorntuvieja.csv","wb") as outfile:
+	# 	outfile.write('"id","sentiment"'+"\n")
+	# 	for p in preds:
+	# 		outfile.write("%s,%s\n"%(p[0],p[1]))
+
+	sentiments = []
+	for e, line in enumerate(open("trololo.tsv", "rb")):
+		if (e > 0):	
+			r = line.strip().split("\t")
+			sentiments.append( (r[0], float(r[1])) )
+	sentiments = sorted(sentiments)
+
+	predicciones = []
+	for e, line in enumerate(open("popcorntuvieja.csv","rb")):
+		if (e > 0):
+			r = line.strip().split(",")		
+			predicciones.append( (r[0], float(r[1])))	
+	predicciones = sorted(predicciones)
+
+	contador = 0
+	for i in range(0,4999):
+		if (predicciones[i][1] == sentiments[i][1] ):
+			contador += 1	
+	print contador
+	print (contador * 1.0) / 5000
